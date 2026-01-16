@@ -1,0 +1,274 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ShoppingBag, ArrowLeft, Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  stock: number;
+  image_url: string | null;
+  category_id: string | null;
+  is_active: boolean;
+  categories: { name: string } | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+const AdminProducts = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+    image_url: "",
+    category_id: "",
+    is_active: true,
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    const [productsRes, categoriesRes] = await Promise.all([
+      supabase.from("products").select("*, categories(name)").order("created_at", { ascending: false }),
+      supabase.from("categories").select("id, name"),
+    ]);
+    if (productsRes.data) setProducts(productsRes.data);
+    if (categoriesRes.data) setCategories(categoriesRes.data);
+    setIsLoading(false);
+  };
+
+  const resetForm = () => {
+    setFormData({ name: "", description: "", price: "", stock: "", image_url: "", category_id: "", is_active: true });
+    setEditingProduct(null);
+  };
+
+  const openEdit = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      description: product.description || "",
+      price: product.price.toString(),
+      stock: product.stock.toString(),
+      image_url: product.image_url || "",
+      category_id: product.category_id || "",
+      is_active: product.is_active,
+    });
+    setIsOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.price) {
+      toast.error("Nombre y precio son requeridos");
+      return;
+    }
+
+    const data = {
+      name: formData.name,
+      description: formData.description || null,
+      price: parseFloat(formData.price),
+      stock: parseInt(formData.stock) || 0,
+      image_url: formData.image_url || null,
+      category_id: formData.category_id || null,
+      is_active: formData.is_active,
+    };
+
+    if (editingProduct) {
+      const { error } = await supabase.from("products").update(data).eq("id", editingProduct.id);
+      if (error) {
+        toast.error("Error al actualizar producto");
+      } else {
+        toast.success("Producto actualizado");
+      }
+    } else {
+      const { error } = await supabase.from("products").insert(data);
+      if (error) {
+        toast.error("Error al crear producto");
+      } else {
+        toast.success("Producto creado");
+      }
+    }
+
+    setIsOpen(false);
+    resetForm();
+    fetchData();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de eliminar este producto?")) return;
+    await supabase.from("products").delete().eq("id", id);
+    toast.success("Producto eliminado");
+    fetchData();
+  };
+
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground">
+        <div className="container mx-auto px-4 h-16 flex items-center">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 nexo-gradient-primary rounded-xl flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-xl font-bold">NexoShop</span>
+          </Link>
+          <span className="px-3 py-1 bg-sidebar-accent rounded-lg text-sm font-medium ml-4">Admin</span>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        <Link to="/admin" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
+          <ArrowLeft className="w-4 h-4" />
+          Volver al panel
+        </Link>
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <h1 className="text-3xl font-bold">Gestión de Productos</h1>
+          <div className="flex gap-4">
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button className="nexo-gradient-primary text-primary-foreground border-0">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nuevo Producto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4 max-h-[70vh] overflow-auto">
+                  <div className="space-y-2">
+                    <Label>Nombre *</Label>
+                    <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descripción</Label>
+                    <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Precio *</Label>
+                      <Input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Stock</Label>
+                      <Input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>URL de Imagen</Label>
+                    <Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Categoría</Label>
+                    <Select value={formData.category_id} onValueChange={(v) => setFormData({ ...formData, category_id: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleSave} className="w-full nexo-gradient-primary text-primary-foreground border-0">
+                    {editingProduct ? "Actualizar" : "Crear"} Producto
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-card rounded-2xl nexo-shadow-sm overflow-hidden"
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Imagen</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Precio</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <img src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                    </TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.categories?.name || "-"}</TableCell>
+                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${product.is_active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
+                        {product.is_active ? "Activo" : "Inactivo"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(product)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminProducts;
