@@ -164,7 +164,7 @@ const AdminShipments = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Select value={shipment.status} onValueChange={(v) => updateStatus(shipment.id, v)}>
+                      <Select value={shipment.status} onValueChange={(v) => updateStatus(shipment.id, v as "pending" | "processing" | "shipped" | "in_transit" | "delivered" | "returned")}>
                         <SelectTrigger className="w-36">
                           <Badge className={statusColors[shipment.status]}>
                             {statusLabels[shipment.status]}

@@ -46,11 +46,15 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
+      // Generate order number
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      
       // Create order
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert([{
           user_id: user!.id,
+          order_number: orderNumber,
           total_amount: grandTotal,
           subtotal: totalAmount,
           tax_amount: taxAmount,
@@ -106,9 +110,11 @@ const Checkout = () => {
       });
 
       // Create invoice
+      const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
       await supabase.from("invoices").insert([{
         order_id: order.id,
         user_id: user!.id,
+        invoice_number: invoiceNumber,
         subtotal: totalAmount,
         tax_amount: taxAmount,
         total_amount: grandTotal,
