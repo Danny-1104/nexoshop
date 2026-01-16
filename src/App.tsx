@@ -8,8 +8,10 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Catalog from "./pages/Catalog";
+import Categories from "./pages/Categories";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
+import SetupTestUsers from "./pages/SetupTestUsers";
 import Checkout from "./pages/Checkout";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import ClientDashboard from "./pages/client/ClientDashboard";
@@ -41,8 +43,10 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/catalog" element={<Catalog />} />
+              <Route path="/categories" element={<Categories />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/setup-users" element={<SetupTestUsers />} />
               
               {/* Protected client routes */}
               <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />

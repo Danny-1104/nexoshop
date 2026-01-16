@@ -141,7 +141,7 @@ const AdminOrders = () => {
                     </TableCell>
                     <TableCell className="font-semibold">${order.total_amount.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Select value={order.status} onValueChange={(v) => updateStatus(order.id, v)}>
+                      <Select value={order.status} onValueChange={(v) => updateStatus(order.id, v as "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled")}>
                         <SelectTrigger className="w-36">
                           <Badge className={statusColors[order.status]}>
                             {statusLabels[order.status]}
