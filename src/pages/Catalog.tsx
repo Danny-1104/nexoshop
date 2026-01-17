@@ -1,14 +1,22 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingBag, Search, Filter, ShoppingCart, Loader2 } from "lucide-react";
-import { useCart } from "@/contexts/CartContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { motion } from "framer-motion";
+import { ShoppingBag, ShoppingCart, Search, Loader2, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Product {
   id: string;
@@ -17,8 +25,7 @@ interface Product {
   price: number;
   stock: number;
   image_url: string | null;
-  category_id: string | null;
-  categories: { name: string } | null;
+  category: { name: string } | null;
 }
 
 interface Category {
@@ -27,14 +34,18 @@ interface Category {
 }
 
 const Catalog = () => {
+  const { user } = useAuth();
+  const { addToCart, totalItems } = useCart();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("name");
-  const { addToCart, totalItems } = useCart();
-  const { user } = useAuth();
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -44,9 +55,9 @@ const Catalog = () => {
   const fetchProducts = async () => {
     const { data } = await supabase
       .from("products")
-      .select("*, categories(name)")
+      .select("id, name, description, price, stock, image_url, category:category_id(name)")
       .eq("is_active", true);
-    if (data) setProducts(data);
+    if (data) setProducts(data as unknown as Product[]);
     setIsLoading(false);
   };
 
@@ -57,17 +68,39 @@ const Catalog = () => {
 
   const handleAddToCart = async (productId: string) => {
     if (!user) {
-      toast.error("Inicia sesión para agregar productos");
+      toast.error("Inicia sesión para agregar productos al carrito");
+      navigate("/login");
       return;
     }
     await addToCart(productId);
+  };
+
+  // Search suggestions
+  useEffect(() => {
+    if (searchTerm.length >= 2) {
+      const filtered = products.filter((p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      ).slice(0, 5);
+      setSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [searchTerm, products]);
+
+  const handleSuggestionClick = (product: Product) => {
+    navigate(`/product/${product.id}`);
+    setShowSuggestions(false);
+    setSearchTerm("");
   };
 
   const filteredProducts = products
     .filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || p.category_id === selectedCategory;
+      const matchesCategory = selectedCategory === "all" || p.category?.name === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -116,13 +149,52 @@ const Catalog = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12"
-            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+            <Popover open={showSuggestions} onOpenChange={setShowSuggestions}>
+              <PopoverTrigger asChild>
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Buscar productos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12"
+                  onFocus={() => searchTerm.length >= 2 && setShowSuggestions(true)}
+                />
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-[var(--radix-popover-trigger-width)] p-0" 
+                align="start"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <Command>
+                  <CommandList>
+                    {suggestions.length === 0 ? (
+                      <CommandEmpty>No se encontraron productos</CommandEmpty>
+                    ) : (
+                      <CommandGroup heading="Sugerencias">
+                        {suggestions.map((product) => (
+                          <CommandItem
+                            key={product.id}
+                            onSelect={() => handleSuggestionClick(product)}
+                            className="flex items-center gap-3 cursor-pointer"
+                          >
+                            <img
+                              src={product.image_url || "/placeholder.svg"}
+                              alt={product.name}
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{product.name}</p>
+                              <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full md:w-48 h-12">
@@ -132,7 +204,7 @@ const Catalog = () => {
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -180,7 +252,7 @@ const Catalog = () => {
                 </Link>
                 <div className="p-4">
                   <p className="text-xs text-muted-foreground mb-1">
-                    {product.categories?.name || "Sin categoría"}
+                    {product.category?.name || "Sin categoría"}
                   </p>
                   <Link to={`/product/${product.id}`}>
                     <h3 className="font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
