@@ -24,6 +24,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminInventory from "./pages/admin/AdminInventory";
 import AdminShipments from "./pages/admin/AdminShipments";
+import AdminCategories from "./pages/admin/AdminCategories";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/admin/orders" element={<ProtectedRoute requireAdmin><AdminOrders /></ProtectedRoute>} />
               <Route path="/admin/inventory" element={<ProtectedRoute requireAdmin><AdminInventory /></ProtectedRoute>} />
               <Route path="/admin/shipments" element={<ProtectedRoute requireAdmin><AdminShipments /></ProtectedRoute>} />
+              <Route path="/admin/categories" element={<ProtectedRoute requireAdmin><AdminCategories /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

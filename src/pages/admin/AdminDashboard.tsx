@@ -3,8 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Package, ShoppingCart, Truck, Users, DollarSign, LogOut, ChevronRight, LayoutDashboard, Archive } from "lucide-react";
+import { ShoppingBag, Package, ShoppingCart, Truck, Users, DollarSign, LogOut, ChevronRight, LayoutDashboard, Archive, FolderOpen } from "lucide-react";
 import { motion } from "framer-motion";
+import { OrderNotifications } from "@/components/OrderNotifications";
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -44,6 +45,7 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { icon: Package, label: "Productos", href: "/admin/products", desc: "Gestionar catálogo" },
+    { icon: FolderOpen, label: "Categorías", href: "/admin/categories", desc: "Gestionar categorías" },
     { icon: ShoppingCart, label: "Pedidos", href: "/admin/orders", desc: "Ver y procesar pedidos" },
     { icon: Archive, label: "Inventario", href: "/admin/inventory", desc: "Control de stock" },
     { icon: Truck, label: "Envíos", href: "/admin/shipments", desc: "Gestión de envíos" },
@@ -70,6 +72,7 @@ const AdminDashboard = () => {
             <span className="px-3 py-1 bg-sidebar-accent rounded-lg text-sm font-medium">Admin</span>
           </div>
           <div className="flex items-center gap-3">
+            <OrderNotifications />
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="text-sidebar-foreground hover:text-sidebar-primary-foreground">
                 <LayoutDashboard className="w-4 h-4 mr-2" />
