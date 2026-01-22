@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingBag, ArrowLeft, Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, Plus, Pencil, Trash2, Search, Image } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -123,151 +124,163 @@ const AdminProducts = () => {
     fetchData();
   };
 
+  const toggleActive = async (product: Product) => {
+    await supabase.from("products").update({ is_active: !product.is_active }).eq("id", product.id);
+    fetchData();
+  };
+
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground">
-        <div className="container mx-auto px-4 h-16 flex items-center">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 nexo-gradient-primary rounded-xl flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">NexoShop</span>
-          </Link>
-          <span className="px-3 py-1 bg-sidebar-accent rounded-lg text-sm font-medium ml-4">Admin</span>
+    <AdminLayout title="Gestión de Productos" subtitle={`${products.length} productos en total`}>
+      {/* Actions Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="relative flex-1 md:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar productos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
         </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        <Link to="/admin" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="w-4 h-4" />
-          Volver al panel
-        </Link>
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <h1 className="text-3xl font-bold">Gestión de Productos</h1>
-          <div className="flex gap-4">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild>
-                <Button className="nexo-gradient-primary text-primary-foreground border-0">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nuevo Producto
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4 max-h-[70vh] overflow-auto">
-                  <div className="space-y-2">
-                    <Label>Nombre *</Label>
-                    <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Descripción</Label>
-                    <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Precio *</Label>
-                      <Input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Stock</Label>
-                      <Input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>URL de Imagen</Label>
-                    <Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Categoría</Label>
-                    <Select value={formData.category_id} onValueChange={(v) => setFormData({ ...formData, category_id: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleSave} className="w-full nexo-gradient-primary text-primary-foreground border-0">
-                    {editingProduct ? "Actualizar" : "Crear"} Producto
-                  </Button>
+        <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nuevo Producto
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4 max-h-[70vh] overflow-auto">
+              <div className="space-y-2">
+                <Label>Nombre *</Label>
+                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Descripción</Label>
+                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Precio *</Label>
+                  <Input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                <div className="space-y-2">
+                  <Label>Stock</Label>
+                  <Input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>URL de Imagen</Label>
+                <Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoría</Label>
+                <Select value={formData.category_id} onValueChange={(v) => setFormData({ ...formData, category_id: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar categoría..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch checked={formData.is_active} onCheckedChange={(v) => setFormData({ ...formData, is_active: v })} />
+                <Label>Producto activo</Label>
+              </div>
+              <Button onClick={handleSave} className="w-full">
+                {editingProduct ? "Actualizar" : "Crear"} Producto
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-card rounded-2xl nexo-shadow-sm overflow-hidden"
-          >
-            <Table>
-              <TableHeader>
+      {/* Products Table */}
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-card rounded-2xl border border-border overflow-hidden"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Imagen</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Categoría</TableHead>
+                <TableHead>Precio</TableHead>
+                <TableHead>Stock</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableHead>Imagen</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    No se encontraron productos
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
+              ) : (
+                filteredProducts.map((product) => (
+                  <TableRow key={product.id} className="group">
                     <TableCell>
-                      <img src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                          <Image className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.categories?.name || "-"}</TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${product.is_active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
-                        {product.is_active ? "Activo" : "Inactivo"}
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{product.categories?.name || <span className="text-muted-foreground">-</span>}</TableCell>
+                    <TableCell className="font-semibold">${product.price.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <span className={product.stock <= 5 ? "text-amber-600 font-medium" : ""}>
+                        {product.stock}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <Switch checked={product.is_active} onCheckedChange={() => toggleActive(product)} />
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(product)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(product)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </motion.div>
-        )}
-      </div>
-    </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </motion.div>
+      )}
+    </AdminLayout>
   );
 };
 
