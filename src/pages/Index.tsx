@@ -2,38 +2,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, Truck, Shield, Star, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import Header from "@/components/Header";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 nexo-glass border-b border-border/50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 nexo-gradient-primary rounded-xl flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">NexoShop</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link to="/catalog" className="text-muted-foreground hover:text-foreground transition-colors">Catálogo</Link>
-            <Link to="/categories" className="text-muted-foreground hover:text-foreground transition-colors">Categorías</Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link to="/cart">
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingBag className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="outline">Iniciar Sesión</Button>
-            </Link>
-            <Link to="/register">
-              <Button className="nexo-gradient-primary text-primary-foreground border-0">Registrarse</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 nexo-gradient-hero min-h-[90vh] flex items-center relative overflow-hidden">
