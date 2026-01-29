@@ -10,7 +10,8 @@ import {
   ChevronRight,
   ShoppingBag,
   LogOut,
-  User
+  User,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: ShoppingCart, label: "Pedidos", href: "/admin/orders" },
   { icon: Archive, label: "Inventario", href: "/admin/inventory" },
   { icon: Truck, label: "Envíos", href: "/admin/shipments" },
+  { icon: Users, label: "Usuarios", href: "/admin/users" },
 ];
 
 export const AdminSidebar = ({ collapsed, onToggle }: AdminSidebarProps) => {
