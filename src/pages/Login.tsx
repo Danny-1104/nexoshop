@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,16 +26,22 @@ const Login = () => {
 
     setIsLoading(true);
     const { error } = await signIn(email, password);
-    setIsLoading(false);
-
+    
     if (error) {
+      setIsLoading(false);
       toast.error("Credenciales incorrectas. Verifica tu email y contraseña.");
     } else {
       toast.success("¡Bienvenido de vuelta!");
-      // Small delay to allow isAdmin state to update
-      setTimeout(() => {
-        navigate(isAdmin ? "/admin" : "/dashboard");
-      }, 100);
+      // Check admin role after login to determine redirect
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      
+      setIsLoading(false);
+      navigate(roleData ? "/admin" : "/dashboard");
     }
   };
 

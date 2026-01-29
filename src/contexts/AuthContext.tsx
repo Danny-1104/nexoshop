@@ -53,10 +53,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .eq("user_id", userId);
     
-    setIsAdmin(roleData?.role === "admin");
+    const hasAdminRole = roleData?.some(r => r.role === "admin") ?? false;
+    setIsAdmin(hasAdminRole);
   };
 
   const refreshProfile = async () => {
