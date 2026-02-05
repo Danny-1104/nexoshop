@@ -83,12 +83,16 @@ const Checkout = () => {
 
       await supabase.from("order_items").insert(orderItems);
 
-      // Update product stock
+      // Update product stock using secure database function
       for (const item of items) {
-        await supabase
-          .from("products")
-          .update({ stock: item.product.stock - item.quantity })
-          .eq("id", item.product_id);
+        const { error: stockError } = await supabase.rpc('decrease_product_stock', {
+          p_product_id: item.product_id,
+          p_quantity: item.quantity
+        });
+        if (stockError) {
+          console.error('Stock update error:', stockError);
+          throw new Error(`Error actualizando stock: ${stockError.message}`);
+        }
       }
 
       // Create payment record

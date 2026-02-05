@@ -505,6 +505,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrease_product_stock: {
+        Args: { p_product_id: string; p_quantity: number }
+        Returns: undefined
+      }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
     }
     Enums: {
